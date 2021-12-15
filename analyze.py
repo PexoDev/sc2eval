@@ -1,101 +1,69 @@
-from logging import error
-from pathlib import Path
-import json 
-
-from zephyrus_sc2_parser.game import player
+import os
+import jsonpickle
 import Zephyrus.parser as zp
 
-class Player:
-    def __init__(self, name, race, matchInfo, matchInfoFrameIndex, timeline, timelineFrameIndex, id):
-        self.name = name
+from zephyrus_sc2_parser.game import player
+from player import Player
+from replayDataPoint import ReplayDataPoint
 
-        self.race = race
-        self.apm = matchInfo["apm"][id]
-        self.spm = matchInfo["spm"][id]
-        self.sq = matchInfo["sq"][id]
-        self.mmr = matchInfo["mmr"][id]
-
-        self.avgMineralsColletionRate = matchInfo["avg_resource_collection_rate"]["minerals"][id]
-        self.avgGasColletionRate = matchInfo["avg_resource_collection_rate"]["gas"][id]
-        self.maxCollectionRate = matchInfo["max_collection_rate"][id]
-        
-        self.avgUnspentMinerals = matchInfo["avg_unspent_resources"]["minerals"][id]
-        self.avgUnspentGas = matchInfo["avg_unspent_resources"]["gas"][id]
-
-        self.mineralsLost = matchInfo["resources_lost"]["minerals"][id]
-        self.gasLost = matchInfo["resources_lost"]["gas"][id]
-
-        self.mineralsCollected = matchInfo["resources_collected"]["minerals"][id]
-        self.gasCollected = matchInfo["resources_collected"]["gas"][id]
-
-        self.workersProduced = matchInfo["workers_produced"][id]
-        self.workersKilled = matchInfo["workers_killed"][id]
-        self.workersLost = matchInfo["workers_lost"][id]
-
-        self.supply = timeline[timelineFrameIndex][id]["supply"]
-        self.maxSupply = timeline[timelineFrameIndex][id]["supply_cap"]
-        self.supplyBlockTime = matchInfo["supply_block"][id]
-        
-        self.upgrades = timeline[timelineFrameIndex][id]["upgrade"]
-        self.armyValueMinerals = timeline[timelineFrameIndex][id]["army_value"]["minerals"]
-        self.armyValueGas = timeline[timelineFrameIndex][id]["army_value"]["gas"]
-
-        if self.mmr is None or type(self.mmr) != int:
-                self.mmr = 0
-
-class ReplayData:
-    def __init__(self,mmrDiff, apmDiff, sqDiff, supplyDiff, resourcesLostDiff):
-        self.mmrDifference = mmrDiff
-        self.apmDifference = apmDiff
-        self.sqDifference = sqDiff
-        self.supplyBlockDifference = supplyDiff
-        self.resourcesLostDifference = resourcesLostDiff
-
-class ReplayDataPoint:
-    def __init__(self, player1Data, player2Data):
-        self.player1Data = player1Data
-        self.player2Data = player2Data
-
-replaysFolder = "M:/Uni/sc2eval/Replays"
+ReplaysFolder = "M:/Uni/sc2eval/Replays"
+SerializedDataFolder = "M:/Uni/sc2eval/SerializedData"
 
 def ProcessReplay(replayPath):
-    data = zp.parse_replay(replaysFolder+"/"+replayPath, local=True)
+    data = zp.parse_replay(replayPath, local=True)
 
     players = data[0]
     timeline = data[1]
     matchInfo = data[3]
     matchMetaData = data[4]
 
-    winnerID = matchMetaData["winner"]
-    if winnerID == 1:
-        loserID =  2 
-    else:
-        loserID = 1
+    winnerID = int(matchMetaData["winner"])
 
-    winnerData = players[winnerID]
-    loserData = players[loserID]
+    dataPoints = {}
+    i = 0
+    while (i < len(timeline)):
+        p1 = Player(players[1].name, players[1].race, matchInfo, i, timeline, i, 1)
+        p2 = Player(players[2].name, players[2].race, matchInfo, i, timeline, i, 2)
+        dataPoints[i] = ReplayDataPoint(p1,p2, int(winnerID-1))
+        i += 1
 
-    winner = Player(winnerData.name, winnerData.race, matchInfo, winnerID)
-    loser = Player(loserData.name, loserData.race, matchInfo, loserID)
+    return dataPoints
 
-    #winningBuildOrder = winner.objects
-    #losingBuildOrder = loser.objects
+def SerializeData(replayData, replayName):
+    filename = replayName+".data"
+    with open(SerializedDataFolder + "/" + filename, "w") as file:
+        serializedData = jsonpickle.encode(replayData)
+        file.write(serializedData)
+    print("Saved replay data to file "+filename)
 
-    winningMMRDiff = winner.mmr - loser.mmr
-    winningAverageAPMDiff = winner.apm - loser.apm
-    winningSQDiff = winner.sq - loser.sq
-    winningSupplyBlockDiff = winner.supplyBlockTime - loser.supplyBlockTime
-    winningResourcesLostDiff = (winner.gasLost + winner.mineralsLost) - (loser.mineralsLost + loser.gasLost)
-       
-    return ReplayData(winningMMRDiff, winningAverageAPMDiff, winningSQDiff, winningSupplyBlockDiff, winningResourcesLostDiff)
+def AnalyzeReplays():
+    i = 0
+    for filename in os.listdir(ReplaysFolder):
+        if("Alpha" in filename): continue
 
-replays = ["1.SC2Replay","2.SC2Replay","3.SC2Replay","4.SC2Replay","5.SC2Replay","6.SC2Replay","10.SC2Replay","11.SC2Replay","12.SC2Replay"]
-replaysData = []
-for replay in replays:
-    try:
-        replaysData.append(ProcessReplay(replay))
+        try:
+            SerializeData(ProcessReplay(ReplaysFolder+"/"+filename), filename)
+        except Exception as e:
+            print("Couldn't decode " + filename)
+            print(e)
+            continue
 
-    except Exception as e:
-        print("Couldn't decode " + replay)
+        i += 1
+        if i > 10: 
+            return
 
-print(replaysData)
+def LoadReplays():
+    replayData = {}
+    i = 0
+
+    for filename in os.listdir(SerializedDataFolder):
+        with open(SerializedDataFolder + "/" + filename, "r") as file:
+            replayData[i] = jsonpickle.decode(file.read())
+            i += 1
+            
+    return replayData
+
+#AnalyzeReplays()
+replays = LoadReplays()
+replays[0]['0'].Vectorize()
+#print(replays)
