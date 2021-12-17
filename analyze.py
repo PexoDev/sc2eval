@@ -1,6 +1,8 @@
 import os
 import jsonpickle
 import Zephyrus.parser as zp
+import numpy as np
+import sklearn as skl
 
 from zephyrus_sc2_parser.game import player
 from player import Player
@@ -64,6 +66,6 @@ def LoadReplays():
     return replayData
 
 #AnalyzeReplays()
-replays = LoadReplays()
-replays[0]['0'].Vectorize()
+#replays = LoadReplays()
+#replays[0]['0'].Vectorize()
 #print(replays)

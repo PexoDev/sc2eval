@@ -6,5 +6,7 @@ class ReplayDataPoint:
 
     def Vectorize(self):
         resultVector = self.player1Data.Vectorize() + self.player2Data.Vectorize()
-        resultVector.append(self.winnerID)
         return resultVector
+        
+    def ReturnWinnerID(self):
+        return self.winnerID
