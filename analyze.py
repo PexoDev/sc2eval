@@ -51,17 +51,16 @@ def AnalyzeReplays():
             continue
 
         i += 1
-        if i > 10: 
+        if i > 200: 
             return
 
 def LoadReplays():
-    replayData = {}
-    i = 0
-
+    replayData = []
     for filename in os.listdir(SerializedDataFolder):
         with open(SerializedDataFolder + "/" + filename, "r") as file:
-            replayData[i] = jsonpickle.decode(file.read())
-            i += 1
+            rep =  jsonpickle.decode(file.read())
+            if(len(rep) >= 100):
+                replayData.append(rep)
             
     return replayData
 
