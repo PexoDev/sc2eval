@@ -74,7 +74,7 @@ def FindAverageReplayLength(reps):
         sum = sum + len(reps[rep])
     return sum/len(reps)
 
-reps = analyze.LoadVectorizedData(1, 0)
+reps = analyze.LoadVectorizedData(10, 0)
 
 amountOfReplays = len(reps)
 # theLongestReplayLength = FindLongestReplay(reps)
@@ -112,7 +112,6 @@ realResults = y_test.argmax(axis=2)
 # model.save_weights(filename)
 
 print()
-print(accuracy_score(realResults, finalPredictions))
 print(MyAccuracy(finalPredictions, realResults))
 
 print(" ")
