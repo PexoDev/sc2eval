@@ -1,4 +1,5 @@
 import jsonpickle
+from keras.engine.data_adapter import train_validation_split
 from sklearn.metrics import accuracy_score
 from tensorflow.keras.utils import to_categorical
 from sklearn.tree import DecisionTreeClassifier
@@ -47,9 +48,12 @@ def NormalizeInput(reps, amountOfReplays, theLongestReplayLength, numberOfFeatur
     yMatrix = np.zeros([amountOfReplays,theLongestReplayLength])
 
     for repIndex in range(len(reps)):
-        for dataPointIndex in range(20, min(len(reps[repIndex]), theLongestReplayLength)):
-            xMatrix[repIndex,int(dataPointIndex),:] = reps[repIndex][dataPointIndex][:-1]
+        for dataPointIndex in range(len(yMatrix[repIndex])):
             yMatrix[repIndex,int(dataPointIndex)] = winnerIDs[repIndex]
+
+    for repIndex in range(len(reps)):
+        for dataPointIndex in range(min(len(reps[repIndex]), theLongestReplayLength)):
+            xMatrix[repIndex,int(dataPointIndex),:] = reps[repIndex][dataPointIndex][:-1]
 
     return xMatrix, yMatrix
 
@@ -74,44 +78,49 @@ def FindAverageReplayLength(reps):
         sum = sum + len(reps[rep])
     return sum/len(reps)
 
-reps = analyze.LoadVectorizedData(10, 0)
+def TrainLSTM(vectorizedReplayData, oldModelFilename, newModelFilename):
+    amountOfReplays = len(vectorizedReplayData)
+    #theLongestReplayLength = FindLongestReplay(vectorizedReplayData)
+    averageReplayLength = 145
+    numberOfFeatures = 324
 
-amountOfReplays = len(reps)
-# theLongestReplayLength = FindLongestReplay(reps)
-averageReplayLength = 145
-# numberOfFeatures = len(reps[0][0])-1
-numberOfFeatures = 324
+    xMatrix, yMatrix = NormalizeInput(vectorizedReplayData, amountOfReplays, averageReplayLength, numberOfFeatures)
 
-xMatrix, yMatrix = NormalizeInput(reps, amountOfReplays, averageReplayLength, numberOfFeatures)
+    model = Sequential()
+    model.add(Masking(mask_value=-1.0, input_shape=(averageReplayLength,numberOfFeatures)))
+    model.add(LSTM(1024, input_shape=(averageReplayLength,numberOfFeatures), return_sequences=True, dropout = 0.2))
+    model.add(LSTM(512, input_shape=(averageReplayLength,1024), return_sequences = True))
+    model.add(Dense(2, activation='softmax'))
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=["acc"])
 
-model = Sequential()
-model.add(Masking(mask_value=-1.0, input_shape=(averageReplayLength,numberOfFeatures)))
-model.add(LSTM(1024, input_shape=(averageReplayLength,numberOfFeatures), return_sequences=True, dropout = 0.2))
-model.add(LSTM(512, input_shape=(averageReplayLength,1024), return_sequences = True))
-model.add(Dense(2, activation='softmax'))
-model.compile(loss='binary_crossentropy', optimizer='adam', metrics=["acc"])
+    if(oldModelFilename is not None):
+        model.load_weights(oldModelFilename)
 
-filename = "model_weights.hdf5"
-model.load_weights(filename)
+    X_train, X_test, y_train, y_test = train_test_split(xMatrix, yMatrix, test_size=0.2, random_state=42)
+    y_train = to_categorical(y_train)
+    y_test = to_categorical(y_test)
 
-#X_train, X_test, y_train, y_test = train_test_split(xMatrix, yMatrix, test_size=1, random_state=42)
-#y_train = to_categorical(y_train)
-#y_test = to_categorical(y_test)
+    result = model.fit(X_train, y_train, batch_size=512, epochs=25, validation_split = 0.1)
+    print("Model Loss")
+    print(result.history['loss'])
+    print("Validation Loss")
+    print(result.history['val_loss'])
 
-y_test = to_categorical(yMatrix)
+    predictions = model.predict(X_test)
+    finalPredictions = predictions.argmax(axis=2)
+    realResults = y_test.argmax(axis=2)
+    
+    if(newModelFilename is not None):
+        model.save_weights(newModelFilename)
+        
+    print("Done Training")
+    print(MyAccuracy(finalPredictions, realResults))
 
-# result = model.fit(X_train, y_train, batch_size=128, epochs=100, validation_split = 0.1)
-# plt.figure()
-# plt.plot(result.history['loss'])
-# plt.plot(result.history['val_loss'])
 
-predictions = model.predict(xMatrix)
-finalPredictions = predictions.argmax(axis=2)
-realResults = y_test.argmax(axis=2)
+def TrainBayesianNetwork(vectorizedReplayData, newModelFilename):
+    print("xd")
+    
 
-# model.save_weights(filename)
 
-print()
-print(MyAccuracy(finalPredictions, realResults))
-
-print(" ")
+vectorizedReplayData = analyze.LoadVectorizedData(5000, 0)
+TrainBayesianNetwork(vectorizedReplayData, "Bayesian_1")
