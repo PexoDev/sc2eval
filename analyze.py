@@ -92,8 +92,8 @@ def LoadVectorizedData(count, startIndex):
             if(len(rep) >= 33):
                 vectorizedData.append(rep)
         i += 1
-        if(i%100 == 0):
-            print("Loaded "+str(i)+"/"+str(len(allReplays)))
+        #if(i%100 == 0):
+        #    print("Loaded "+str(i)+"/"+str(len(allReplays)))
         if(i >= count):
             return vectorizedData
     return vectorizedData
