@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import ReplaysParser 
 from tensorflow.keras.utils import to_categorical
@@ -5,9 +6,10 @@ from sklearn.model_selection import train_test_split
 from keras.models import Sequential
 from keras.layers import Dense, LSTM, Masking
 from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras import losses
 
 averageReplayLength = 145
-numberOfFeatures = 324
+modelNumberOfFeatures = 322
 
 def MyAccuracy(predictions, realResults):
     acc = 0
@@ -99,7 +101,7 @@ def FindAverageReplayLength(reps):
 def TrainLSTM(vectorizedReplayData, existingModel):
     theLongestReplayLength = min(FindLongestReplay(vectorizedReplayData), 500)
     amountOfReplays = len(vectorizedReplayData)
-    xMatrix, yMatrix = PrepareInputData(vectorizedReplayData, amountOfReplays, theLongestReplayLength, numberOfFeatures)
+    xMatrix, yMatrix = PrepareInputData(vectorizedReplayData, amountOfReplays, theLongestReplayLength, modelNumberOfFeatures)
     
     if(existingModel is not None):
         model = existingModel
@@ -110,9 +112,9 @@ def TrainLSTM(vectorizedReplayData, existingModel):
     y_train = to_categorical(y_train)
     y_test = to_categorical(y_test)
 
-    es = EarlyStopping(monitor='val_loss', mode='min', patience=2, min_delta=0.001, verbose=1, restore_best_weights = True)
+    es = EarlyStopping(monitor='val_loss', mode='min', patience=10, min_delta=0.001, verbose=1, restore_best_weights = True)
 
-    result = model.fit(X_train, y_train, batch_size=32, epochs=10, validation_split = 0.1, callbacks=[es])
+    result = model.fit(X_train, y_train, batch_size=32, epochs=100, validation_split = 0.1, callbacks=[es])
     print("Model Loss")
     print(result.history['loss'])
     print("Validation Loss")
@@ -125,14 +127,17 @@ def TrainLSTM(vectorizedReplayData, existingModel):
     print("Done Training | Accuarcy: " + str(MyAccuracy(finalPredictions, realResults)))
     return (model, MyAccuracy(finalPredictions, realResults))
 
-def IterateTraining(batchSize, maxReplaysToUse):
+def IterateTraining(batchSize, maxReplaysToUse, modelNamePrefix):
+    startTime = time.time()
     vectorizedReplayData = ReplaysParser.LoadVectorizedData(batchSize, 0)
+    #vectorizedReplayData = ReplaysParser.ExtractBasicAndArmyData(vectorizedReplayData)
+
     (LSTMmodel, acc) = TrainLSTM(vectorizedReplayData, None)
     Accuracies = [acc]
 
     for i in range (1, int(maxReplaysToUse/batchSize)-1 ):
         vectorizedReplayData = ReplaysParser.LoadVectorizedData(batchSize, batchSize*i)
-
+        #vectorizedReplayData = ReplaysParser.ExtractBasicAndArmyData(vectorizedReplayData)
         try:
             (LSTMmodel, acc) = TrainLSTM(vectorizedReplayData, LSTMmodel)
         except Exception as e:
@@ -140,8 +145,9 @@ def IterateTraining(batchSize, maxReplaysToUse):
 
         Accuracies.append(acc)
 
-    LSTMmodel.save_weights("lstm_various-match-length_not-normalized_loss-stop_"+str(maxReplaysToUse)+".weights")
+    LSTMmodel.save_weights(modelNamePrefix+str(maxReplaysToUse)+".weights")
     print(Accuracies)
+    print("Training time: " + str(time.time() - startTime))
 
 def UseTrainedLSTMModel(weightsPath):
     model = InitializeLSTMModel()
@@ -149,12 +155,20 @@ def UseTrainedLSTMModel(weightsPath):
     return model
 
 def InitializeLSTMModel():
+    # lossMethod = losses.BinaryCrossentropy(
+    #         from_logits=False,
+    #         label_smoothing=0.0,
+    #         axis=-1,
+    #         reduction="auto",
+    #         name="binary_crossentropy",
+    #         )
+
     model = Sequential()
-    model.add(Masking(mask_value=-1.0, input_shape=(None, numberOfFeatures)))
-    model.add(LSTM(1024, input_shape=(None, numberOfFeatures), return_sequences = True, dropout = 0.2))
+    model.add(Masking(mask_value=-1.0, input_shape=(None, modelNumberOfFeatures)))
+    model.add(LSTM(1024, input_shape=(None,  modelNumberOfFeatures), return_sequences = True, dropout = 0.2))
     model.add(LSTM(512, input_shape=(None, 1024), return_sequences = True))
     model.add(Dense(2, activation='softmax'))
-    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=["accuracy"])
+    model.compile(loss="binary_crossentropy", optimizer='adam', metrics=["accuracy"])
     return model
 
-#IterateTraining(10,1*10)
+#IterateTraining(512,15000, "lstm_various-match-length_not-normalized_all-features_")

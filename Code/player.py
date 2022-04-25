@@ -8,27 +8,36 @@ class Player:
         self.name = name
 
         self.race = race
-        self.apm = matchInfo["apm"][id]
-        self.spm = matchInfo["spm"][id]
-        self.sq = matchInfo["sq"][id]
-        self.mmr = matchInfo["mmr"][id]
+        self.mmr = matchInfo["mmr"][id] < 0 if 0 else matchInfo["mmr"][id]
+        self.apm = matchInfo["apm"][id] < 0 if 0 else matchInfo["apm"][id]
+        self.sq = matchInfo["sq"][id] < 0 if 0 else matchInfo["sq"][id]
 
-        self.avgMineralsColletionRate = matchInfo["avg_resource_collection_rate"]["minerals"][id]
-        self.avgGasColletionRate = matchInfo["avg_resource_collection_rate"]["gas"][id]
-        self.maxCollectionRate = matchInfo["max_collection_rate"][id]
-        
-        self.avgUnspentMinerals = matchInfo["avg_unspent_resources"]["minerals"][id]
-        self.avgUnspentGas = matchInfo["avg_unspent_resources"]["gas"][id]
+        self.spm = timeline[timelineFrameIndex][id]["spm"] < 0 if 0 else matchInfo["spm"][id]
 
-        self.mineralsLost = matchInfo["resources_lost"]["minerals"][id]
-        self.gasLost = matchInfo["resources_lost"]["gas"][id]
+        # self.avgMineralsColletionRate = matchInfo["avg_resource_collection_rate"]["minerals"][id]
+        # self.avgGasColletionRate = matchInfo["avg_resource_collection_rate"]["gas"][id]
+        # self.maxCollectionRate = matchInfo["max_collection_rate"][id]
+        # self.avgUnspentMinerals = matchInfo["avg_unspent_resources"]["minerals"][id]
+        # self.avgUnspentGas = matchInfo["avg_unspent_resources"]["gas"][id]
+        # self.mineralsLost = matchInfo["resources_lost"]["minerals"][id]
+        # self.gasLost = matchInfo["resources_lost"]["gas"][id]
+        # self.mineralsCollected = matchInfo["resources_collected"]["minerals"][id]
+        # self.gasCollected = matchInfo["resources_collected"]["gas"][id]
+        # self.workersProduced = matchInfo["workers_produced"][id]
+        # self.workersKilled = matchInfo["workers_killed"][id]
+        # self.workersLost = matchInfo["workers_lost"][id]
 
-        self.mineralsCollected = matchInfo["resources_collected"]["minerals"][id]
-        self.gasCollected = matchInfo["resources_collected"]["gas"][id]
-
-        self.workersProduced = matchInfo["workers_produced"][id]
-        self.workersKilled = matchInfo["workers_killed"][id]
-        self.workersLost = matchInfo["workers_lost"][id]
+        self.mineralsColletionRate = timeline[timelineFrameIndex][id]["resource_collection_rate"]["minerals"]
+        self.gasColletionRate = timeline[timelineFrameIndex][id]["resource_collection_rate"]["gas"]
+        self.unspentMinerals = timeline[timelineFrameIndex][id]["unspent_resources"]["minerals"]
+        self.unspentGas = timeline[timelineFrameIndex][id]["unspent_resources"]["gas"]
+        self.mineralsLost = timeline[timelineFrameIndex][id]["resources_lost"]["minerals"]
+        self.gasLost = timeline[timelineFrameIndex][id]["resources_lost"]["gas"]
+        self.mineralsCollected = timeline[timelineFrameIndex][id]["resources_collected"]["minerals"]
+        self.gasCollected = timeline[timelineFrameIndex][id]["resources_collected"]["gas"]
+        self.workersProduced = timeline[timelineFrameIndex][id]["workers_produced"]
+        self.workersKilled = timeline[timelineFrameIndex][id]["workers_killed"]
+        self.workersLost = timeline[timelineFrameIndex][id]["workers_lost"]
 
         self.supply = timeline[timelineFrameIndex][id]["supply"]
         self.maxSupply = timeline[timelineFrameIndex][id]["supply_cap"]
@@ -75,11 +84,10 @@ class Player:
         resultVector.append(int(self.spm))
         resultVector.append(int(self.sq))
         resultVector.append(int(self.mmr))
-        resultVector.append(int(self.avgMineralsColletionRate))
-        resultVector.append(int(self.avgGasColletionRate))
-        resultVector.append(int(self.maxCollectionRate))
-        resultVector.append(int(self.avgUnspentMinerals))
-        resultVector.append(int(self.avgUnspentGas))
+        resultVector.append(int(self.mineralsColletionRate))
+        resultVector.append(int(self.gasColletionRate))
+        resultVector.append(int(self.unspentMinerals))
+        resultVector.append(int(self.unspentGas))
         resultVector.append(int(self.mineralsLost))
         resultVector.append(int(self.gasLost))
         resultVector.append(int(self.mineralsCollected))

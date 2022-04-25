@@ -11,6 +11,8 @@ __pycache__/
 SerializedData/
 CorruptedReplays/
 TooShortReplays/
+NewSerializedData/
+SerializedDataForValidation/
 Replays/
 build/
 develop-eggs/
