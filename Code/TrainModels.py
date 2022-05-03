@@ -127,17 +127,15 @@ def TrainLSTM(vectorizedReplayData, existingModel):
     print("Done Training | Accuarcy: " + str(MyAccuracy(finalPredictions, realResults)))
     return (model, MyAccuracy(finalPredictions, realResults))
 
-def IterateTraining(batchSize, maxReplaysToUse, modelNamePrefix):
+def IterateTraining(batchSize, maxReplaysToUse, modelNamePrefix, replaysOffset):
     startTime = time.time()
-    vectorizedReplayData = ReplaysParser.LoadVectorizedData(batchSize, 0)
-    #vectorizedReplayData = ReplaysParser.ExtractBasicAndArmyData(vectorizedReplayData)
+    vectorizedReplayData = ReplaysParser.LoadVectorizedData(batchSize, replaysOffset)
 
     (LSTMmodel, acc) = TrainLSTM(vectorizedReplayData, None)
     Accuracies = [acc]
 
     for i in range (1, int(maxReplaysToUse/batchSize)-1 ):
-        vectorizedReplayData = ReplaysParser.LoadVectorizedData(batchSize, batchSize*i)
-        #vectorizedReplayData = ReplaysParser.ExtractBasicAndArmyData(vectorizedReplayData)
+        vectorizedReplayData = ReplaysParser.LoadVectorizedData(batchSize, replaysOffset + batchSize*i)
         try:
             (LSTMmodel, acc) = TrainLSTM(vectorizedReplayData, LSTMmodel)
         except Exception as e:
@@ -155,14 +153,6 @@ def UseTrainedLSTMModel(weightsPath):
     return model
 
 def InitializeLSTMModel():
-    # lossMethod = losses.BinaryCrossentropy(
-    #         from_logits=False,
-    #         label_smoothing=0.0,
-    #         axis=-1,
-    #         reduction="auto",
-    #         name="binary_crossentropy",
-    #         )
-
     model = Sequential()
     model.add(Masking(mask_value=-1.0, input_shape=(None, modelNumberOfFeatures)))
     model.add(LSTM(1024, input_shape=(None,  modelNumberOfFeatures), return_sequences = True, dropout = 0.2))
@@ -171,4 +161,4 @@ def InitializeLSTMModel():
     model.compile(loss="binary_crossentropy", optimizer='adam', metrics=["accuracy"])
     return model
 
-#IterateTraining(512,15000, "lstm_various-match-length_not-normalized_all-features_")
+#IterateTraining(512,30000, "lstm_various-match-length_not-normalized_all-features_", 15000)

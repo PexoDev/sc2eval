@@ -1,3 +1,4 @@
+import threading
 import time
 from zephyrus_sc2_parser.game import player
 from player import Player
@@ -46,6 +47,7 @@ def AnalyzeReplays(startIndex, count):
     for index in range(len(ReplaysScaned)):
         ReplaysScaned[index] = ReplaysScaned[index].removesuffix("_vectorized.jsonData")
     allFiles = [item for item in os.listdir(ReplaysFolder) if item not in ReplaysScaned]
+    print("files left: "+str(len(allFiles)))
     for fileIndex in range(startIndex, min(startIndex + count, len(allFiles))):
         filename = allFiles[fileIndex]
         try:
@@ -137,8 +139,8 @@ def SerializeData(replayData, replayName):
         serializedData = json.dumps(replayData)
         file.write(serializedData)
 
-# for i in range(300):
-#     start = time.time()
-#     AnalyzeReplays(i*100,100)
-#     end = time.time()
-#     print("Processed "+str(i*100)+"/30000 | time per batch "+str(end - start),end='\r')
+for i in range(140):
+    start = time.time()
+    AnalyzeReplays(0,100)
+    end = time.time()
+    print("Processed "+str(i*1000)+"/14000 | time per batch "+str(end - start),end='\r')
