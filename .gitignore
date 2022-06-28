@@ -8,12 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-SerializedData/
-CorruptedReplays/
-TooShortReplays/
-NewSerializedData/
-SerializedDataForValidation/
-Replays/
+test/
 build/
 develop-eggs/
 dist/

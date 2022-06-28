@@ -1,2 +1,0 @@
-model_checkpoint_path: "lstm_various-match-length_not-normalized_all-features_15000.weights"
-all_model_checkpoint_paths: "lstm_various-match-length_not-normalized_all-features_15000.weights"

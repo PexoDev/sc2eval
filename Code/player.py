@@ -4,7 +4,7 @@ from upgradeType import UpgradeType
 
 
 class Player:
-    def __init__(self, name, race, matchInfo, matchInfoFrameIndex, timeline, timelineFrameIndex, id):
+    def __init__(self, name, race, matchInfo, timeline, timelineFrameIndex, id):
         self.name = name
 
         self.race = race
@@ -13,19 +13,6 @@ class Player:
         self.sq = matchInfo["sq"][id] < 0 if 0 else matchInfo["sq"][id]
 
         self.spm = timeline[timelineFrameIndex][id]["spm"] < 0 if 0 else matchInfo["spm"][id]
-
-        # self.avgMineralsColletionRate = matchInfo["avg_resource_collection_rate"]["minerals"][id]
-        # self.avgGasColletionRate = matchInfo["avg_resource_collection_rate"]["gas"][id]
-        # self.maxCollectionRate = matchInfo["max_collection_rate"][id]
-        # self.avgUnspentMinerals = matchInfo["avg_unspent_resources"]["minerals"][id]
-        # self.avgUnspentGas = matchInfo["avg_unspent_resources"]["gas"][id]
-        # self.mineralsLost = matchInfo["resources_lost"]["minerals"][id]
-        # self.gasLost = matchInfo["resources_lost"]["gas"][id]
-        # self.mineralsCollected = matchInfo["resources_collected"]["minerals"][id]
-        # self.gasCollected = matchInfo["resources_collected"]["gas"][id]
-        # self.workersProduced = matchInfo["workers_produced"][id]
-        # self.workersKilled = matchInfo["workers_killed"][id]
-        # self.workersLost = matchInfo["workers_lost"][id]
 
         self.mineralsColletionRate = timeline[timelineFrameIndex][id]["resource_collection_rate"]["minerals"]
         self.gasColletionRate = timeline[timelineFrameIndex][id]["resource_collection_rate"]["gas"]

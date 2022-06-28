@@ -1,0 +1,6 @@
+numpy==1.23.0
+zephyrus-sc2-parser==0.3.7
+tensorflow==2.9.1
+sklearn==0.0
+ipykernel==6.15.0
+matplotlib==3.5.2

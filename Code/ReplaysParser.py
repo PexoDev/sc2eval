@@ -1,27 +1,24 @@
-import threading
-import time
-from zephyrus_sc2_parser.game import player
-from player import Player
-from replayDataPoint import ReplayDataPoint
-
+from math import ceil
 import os
 import json
-import Zephyrus.parser as zp
-import numpy as np
-import sklearn as skl
 import shutil
+import threading
+import zephyrus_sc2_parser.parser as zp
 
-ReplaysFolder = "M:/Uni/sc2eval/Replays/RawReplays"
-CorruptedReplaysFolder = "M:/Uni/sc2eval/CorruptedReplays"
-TooShortReplaysFolder = "M:/Uni/sc2eval/TooShortReplays"
-SerializedDataFolder = "M:/Uni/sc2eval/SerializedData"
-NewSerializedDataFolder = "M:/Uni/sc2eval/NewSerializedData"
+from replayDataPoint import ReplayDataPoint
+from zephyrus_sc2_parser.game import player
+from player import Player
+
+ReplaysFolder = "Replays/RawReplays"
+CorruptedReplaysFolder = "Replays/CorruptedReplays"
+TooShortReplaysFolder = "Replays/TooShortReplays"
+SerializedDataFolder = "SerializedReplays"
 
 CorruptedReplays = []
 TooShortReplays = []
 
 def ProcessReplay(replayPath):
-    data = zp.parse_replay(replayPath, local=True)
+    data = zp.parse_replay(replayPath, local=True, network=False)
 
     players = data[0]
     timeline = data[1]
@@ -33,21 +30,20 @@ def ProcessReplay(replayPath):
     dataPoints = {}
     i = 0
     while (i < len(timeline)):
-        p1 = Player(players[1].name, players[1].race, matchInfo, i, timeline, i, 1)
-        p2 = Player(players[2].name, players[2].race, matchInfo, i, timeline, i, 2)
+        p1 = Player(players[1].name, players[1].race, matchInfo, timeline, i, 1)
+        p2 = Player(players[2].name, players[2].race, matchInfo, timeline, i, 2)
         dataPoints[i] = ReplayDataPoint(p1,p2, int(winnerID-1))
         i += 1
 
     return dataPoints
 
 def AnalyzeReplays(startIndex, count):
-    ReplaysScaned = os.listdir(NewSerializedDataFolder)
+    ReplaysScaned = os.listdir(SerializedDataFolder)
     CorruptedReplays = []
     TooShortReplays = []
     for index in range(len(ReplaysScaned)):
         ReplaysScaned[index] = ReplaysScaned[index].removesuffix("_vectorized.jsonData")
     allFiles = [item for item in os.listdir(ReplaysFolder) if item not in ReplaysScaned]
-    print("files left: "+str(len(allFiles)))
     for fileIndex in range(startIndex, min(startIndex + count, len(allFiles))):
         filename = allFiles[fileIndex]
         try:
@@ -62,9 +58,6 @@ def AnalyzeReplays(startIndex, count):
             CorruptedReplays.append(filename)
             print(e)
             continue
-    
-    print(CorruptedReplays)
-    print(TooShortReplays)
 
     for index in range(len(CorruptedReplays)):
         shutil.move(ReplaysFolder+"/"+CorruptedReplays[index],CorruptedReplaysFolder+"/"+CorruptedReplays[index])
@@ -73,14 +66,14 @@ def AnalyzeReplays(startIndex, count):
 
 def LoadVectorizedData(count, startIndex, path = None):
     if(path is None):
-        path = NewSerializedDataFolder
+        path = SerializedDataFolder
 
     i = 0
     vectorizedData = []
     allReplays = os.listdir(path)
 
     allReplays = sorted(allReplays, key =  lambda x: os.stat(path+"/"+x).st_size)
-
+    
     for fileIndex in range(startIndex, min(startIndex+count,len(allReplays))):
         filename = allReplays[fileIndex]
         if(not filename.__contains__("_vectorized.jsonData")): continue
@@ -95,6 +88,12 @@ def LoadVectorizedData(count, startIndex, path = None):
             return vectorizedData
     return vectorizedData
 
+def LoadVectorizedReplay(path):
+    with open(path, "r") as file:
+        rep =  json.loads(file.read())
+        return rep
+
+# Extracts 42 basic features 
 def ExtractBasicDataOnly(vectorizedData):
     basicData = []
 
@@ -110,6 +109,7 @@ def ExtractBasicDataOnly(vectorizedData):
 
     return basicData
 
+# Extracts 142 features: basic + army
 def ExtractBasicAndArmyData(vectorizedData):
     basicData = []
 
@@ -131,16 +131,25 @@ def VectorizeAndSaveReplay(replayData, replayName):
     while (i < len(replayData)):
         vectorized.append(replayData[i].Vectorize())
         i += 1
-    SerializeData(vectorized, replayName+"_vectorized")
+    SaveSerializedDataToFile(vectorized, replayName+"_vectorized")
 
-def SerializeData(replayData, replayName):
+def SaveSerializedDataToFile(replayData, replayName):
     filename = replayName+".jsonData"
-    with open(NewSerializedDataFolder + "/" + filename, "w") as file:
+    with open(SerializedDataFolder + "/" + filename, "w") as file:
         serializedData = json.dumps(replayData)
         file.write(serializedData)
 
-for i in range(140):
-    start = time.time()
-    AnalyzeReplays(0,100)
-    end = time.time()
-    print("Processed "+str(i*1000)+"/14000 | time per batch "+str(end - start),end='\r')
+
+def ProcessReplays(threadsCount = 8):
+    allReplays = len(os.listdir(ReplaysFolder))
+    r = ceil(allReplays/(threadsCount*100))
+    for i in range(r):
+        threads = []
+        for threadIndex in range(threadsCount):
+            thread = threading.Thread(target=AnalyzeReplays, args=(threadIndex*100, 100))
+            threads.append(thread)
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        print("Processed "+str(i*threadsCount*100)+"/"+str(allReplays))
