@@ -1,5 +1,5 @@
 # SC2Eval
-LSTM-based machine learning solution for evaluation of startegic position in Starcraft II.
+LSTM-based machine learning solution for evaluation of strategic position in Starcraft II.
 
 The repo comes with one pre-trained model so you can evaluate your own matches, it also contains a few replays and their serialized versions for demo purposes. If you intend on training your own models using methods implemented within you need to gather a dataset of SC2 replays (I trained my models on 30 thousands). 
 
